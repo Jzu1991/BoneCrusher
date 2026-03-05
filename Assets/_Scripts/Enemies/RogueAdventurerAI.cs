@@ -31,7 +31,7 @@ public class RogueAdventurerAI : EnemyAI
         if (attackTimer <= 0f)
         {
             attackTimer = attackCooldown;
-            animator?.SetTrigger("Attack");
+            animator?.SetTrigger(AnimAttack);
             DealDamage();
             isBackstepping = true;
             backstepTimer  = 0.4f;

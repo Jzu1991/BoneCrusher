@@ -159,6 +159,14 @@ public class GameManager : MonoBehaviour
 
     // ── UI ────────────────────────────────────────────────────
     public void RestartGame() => SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
-    public void QuitGame()    => Application.Quit();
+    public void QuitGame()    => QuitApplication();
     public int CurrentFloor   => currentFloor;
+
+    public static void QuitApplication()
+    {
+        Application.Quit();
+#if UNITY_EDITOR
+        UnityEditor.EditorApplication.isPlaying = false;
+#endif
+    }
 }

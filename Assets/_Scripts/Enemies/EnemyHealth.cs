@@ -29,10 +29,23 @@ public class EnemyHealth : MonoBehaviour
     private static readonly int AnimHurt = Animator.StringToHash("Hurt");
     private static readonly int AnimDie  = Animator.StringToHash("Die");
 
+    private SkarnController skarnController;
+    private SkarnHealth     skarnHealth;
+
     protected virtual void Awake()
     {
         currentHealth = maxHealth;
         animator = GetComponent<Animator>();
+    }
+
+    protected virtual void Start()
+    {
+        var playerObj = GameObject.FindGameObjectWithTag("Player");
+        if (playerObj != null)
+        {
+            skarnController = playerObj.GetComponent<SkarnController>();
+            skarnHealth     = playerObj.GetComponent<SkarnHealth>();
+        }
     }
 
     /// <summary>Recibir daño. piercesShields = poder del Espectro.</summary>
@@ -64,21 +77,13 @@ public class EnemyHealth : MonoBehaviour
 
         // Si es un aliado, notificar al jugador para desbloquear poder
         if (isAlly)
-        {
-            SkarnController skarn = FindFirstObjectByType<SkarnController>();
-            skarn?.UnlockAllyPower(allyType);
-        }
+            skarnController?.UnlockAllyPower(allyType);
 
         // Si es un aventurero, sanar a Skarn
         if (enemyType == EnemyType.Adventurer)
-        {
-            SkarnHealth skarnHealth = FindFirstObjectByType<SkarnHealth>();
             skarnHealth?.HealOnAdventurerKill();
-        }
 
         // Destruir tras la animación de muerte
         Destroy(gameObject, 1.5f);
     }
 }
-
-public enum EnemyType { Monster, Adventurer, Boss }

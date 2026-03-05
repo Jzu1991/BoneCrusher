@@ -7,8 +7,6 @@ public class WarriorAdventurerAI : EnemyAI
     [SerializeField] private float chargeSpeed     = 7f;
     [SerializeField] private float chargeThreshold = 0.4f;
 
-    private EnemyHealth enemyHealth;
-
     protected override void Awake()
     {
         base.Awake();
@@ -17,12 +15,11 @@ public class WarriorAdventurerAI : EnemyAI
         attackDamage   = 1;
         detectionRange = 16f;
         attackRange    = 1.2f;
-        enemyHealth    = GetComponent<EnemyHealth>();
     }
 
     protected override void Chase()
     {
-        float hpRatio    = (float)enemyHealth.CurrentHP / enemyHealth.MaxHP;
+        float hpRatio    = (float)health.CurrentHP / health.MaxHP;
         float speed      = hpRatio <= chargeThreshold ? chargeSpeed : moveSpeed;
         float dir        = player.position.x > transform.position.x ? 1f : -1f;
         rb.linearVelocity = new Vector2(speed * dir, rb.linearVelocity.y);
