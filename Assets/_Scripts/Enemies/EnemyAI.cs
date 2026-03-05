@@ -40,8 +40,8 @@ public class EnemyAI : MonoBehaviour
     private float lostPlayerTimer;
     private const float LOST_PLAYER_GRACE = 2f;
 
-    private static readonly int AnimSpeed  = Animator.StringToHash("Speed");
-    private static readonly int AnimAttack = Animator.StringToHash("Attack");
+    private   static readonly int AnimSpeed  = Animator.StringToHash("Speed");
+    protected static readonly int AnimAttack = Animator.StringToHash("Attack");
 
     // ── LIFECYCLE ─────────────────────────────────────────────
     protected virtual void Awake()

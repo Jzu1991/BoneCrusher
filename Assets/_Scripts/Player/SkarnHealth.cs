@@ -31,6 +31,8 @@ public class SkarnHealth : MonoBehaviour
     private bool golemShieldActive = false;
     private bool isInvincible    = false;   // invencibilidad temporal tras recibir daño
 
+    private SkarnController controller;
+
     [Header("Invencibilidad")]
     [SerializeField] private float invincibilityDuration = 1f;
     private float invincibilityTimer;
@@ -60,6 +62,7 @@ public class SkarnHealth : MonoBehaviour
         currentSkulls = BASE_SKULLS;
         maxSkulls     = BASE_SKULLS;
         credits       = MAX_CREDITS;
+        controller    = GetComponent<SkarnController>();
     }
 
     private void Update()
@@ -91,7 +94,7 @@ public class SkarnHealth : MonoBehaviour
         currentSkulls -= amount;
         currentSkulls  = Mathf.Max(currentSkulls, 0);
 
-        GetComponent<SkarnController>()?.TriggerHurtAnimation();
+        controller?.TriggerHurtAnimation();
         OnSkullsChanged?.Invoke(currentSkulls, maxSkulls);
 
         if (currentSkulls <= 0)
@@ -139,7 +142,7 @@ public class SkarnHealth : MonoBehaviour
         if (isDead) return;
         isDead = true;
 
-        GetComponent<SkarnController>()?.TriggerDeathAnimation();
+        controller?.TriggerDeathAnimation();
         OnSkarnDied?.Invoke();
 
         if (credits > 0)
