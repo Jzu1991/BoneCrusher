@@ -46,6 +46,18 @@ public class GameManager : MonoBehaviour
         if (skarnHealth == null)
             skarnHealth = FindFirstObjectByType<SkarnHealth>();
 
+        // Crear HUD automáticamente si no fue asignado en el Inspector
+        if (hud == null)
+        {
+            hud = FindFirstObjectByType<HUDManager>();
+            if (hud == null)
+            {
+                GameObject hudGO = new GameObject("HUD");
+                hud = hudGO.AddComponent<HUDManager>();
+                hudGO.AddComponent<HUDSetup>();
+            }
+        }
+
         if (skarnHealth != null)
         {
             skarnHealth.OnSkarnDied      += OnSkarnDied;
