@@ -25,6 +25,8 @@ public class BoneCrusherSetup : EditorWindow
     public static void RunFullSetup()
     {
         Debug.Log("=== BONE CRUSHER SETUP v7 ===");
+        // Reset sprite caches
+        _whitePx = null; _wallTile = null; _groundTile = null; _bgTile = null;
         SetupLayersAndTags();
         AssetDatabase.Refresh();
         CreateAllAnimClips();
@@ -118,6 +120,16 @@ public class BoneCrusherSetup : EditorWindow
             if (!found) { tags.arraySize++; tags.GetArrayElementAtIndex(tags.arraySize - 1).stringValue = tag; }
         }
         so.ApplyModifiedProperties();
+
+        // Asegurar que los layers pueden interactuar en Physics2D
+        // Player(9) <-> Enemy(10), Player(9) <-> Projectile(11)
+        // Enemy(10) <-> Projectile(11), Ground(8) <-> Player(9), Ground(8) <-> Enemy(10)
+        Physics2D.IgnoreLayerCollision(9,  10, false); // Player <-> Enemy
+        Physics2D.IgnoreLayerCollision(9,  11, false); // Player <-> Projectile
+        Physics2D.IgnoreLayerCollision(10, 11, false); // Enemy  <-> Projectile
+        Physics2D.IgnoreLayerCollision(8,   9, false); // Ground <-> Player
+        Physics2D.IgnoreLayerCollision(8,  10, false); // Ground <-> Enemy
+        Physics2D.IgnoreLayerCollision(10, 10, true);  // Enemy  <-> Enemy (no chocarse entre si)
     }
 
     // ══════════════════════════════════════════════════════════
@@ -414,8 +426,8 @@ public class BoneCrusherSetup : EditorWindow
         EnsureFolder("Assets/_Prefabs/Player");
         EnsureFolder("Assets/_Prefabs/Enemies");
 
-        MakeSkarn();
         MakeMagicProjectile();
+        MakeSkarn();
         MakeArrow();
         MakeGoblin();
         MakeSkeletonArcher();
@@ -450,14 +462,19 @@ public class BoneCrusherSetup : EditorWindow
         var mgc = Sub(go, "MagicSpawnPoint",new Vector3(1.2f,  0.3f,  0f));
         var gnd = Sub(go, "GroundCheck",    new Vector3(0f,   -0.85f, 0f));
 
+        // Cargar prefab del proyectil (debe existir antes - MakeMagicProjectile se llama primero)
+        var magicPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(
+            "Assets/_Prefabs/Player/MagicProjectile.prefab");
+
         SO(go.AddComponent<SkarnController>(), so => {
             F(so,"moveSpeed",5f); F(so,"jumpForce",10f); F(so,"groundCheckRadius",0.2f);
             F(so,"attackRange",0.8f); I(so,"swordDamage",1); F(so,"attackCooldown",0.4f);
             F(so,"magicCooldown",1f); I(so,"magicDamage",2);
             M(so,"groundLayer",1<<8); M(so,"enemyLayer",1<<10);
-            R(so,"attackPoint",    atk.transform);
-            R(so,"magicSpawnPoint",mgc.transform);
-            R(so,"groundCheck",    gnd.transform);
+            R(so,"attackPoint",         atk.transform);
+            R(so,"magicSpawnPoint",      mgc.transform);
+            R(so,"groundCheck",          gnd.transform);
+            R(so,"magicProjectilePrefab", magicPrefab);
         });
         SO(go.AddComponent<SkarnHealth>(), so => F(so,"invincibilityDuration",1f));
 
@@ -541,7 +558,7 @@ public class BoneCrusherSetup : EditorWindow
             "Assets/_Art/Goblin/Idle/000.png", "Goblin");
         var atk = go.transform.Find("AttackPoint");
         SO(go.AddComponent<GoblinAI>(), so => {
-            F(so,"detectionRange",6f); F(so,"attackRange",1f); F(so,"moveSpeed",3.5f);
+            F(so,"detectionRange",12f); F(so,"attackRange",1f); F(so,"moveSpeed",3.5f);
             F(so,"patrolDistance",3f); I(so,"attackDamage",1); F(so,"attackCooldown",1.2f);
             M(so,"playerLayer",1<<9); M(so,"enemyLayer",1<<10); R(so,"attackPoint",atk);
             F(so,"dashSpeed",6f); F(so,"dashChance",0.3f);
@@ -560,7 +577,7 @@ public class BoneCrusherSetup : EditorWindow
         var arrowPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(
             "Assets/_Prefabs/Enemies/Arrow.prefab");
         SO(go.AddComponent<SkeletonArcherAI>(), so => {
-            F(so,"detectionRange",7f); F(so,"attackRange",5f); F(so,"moveSpeed",2f);
+            F(so,"detectionRange",14f); F(so,"attackRange",5f); F(so,"moveSpeed",2f);
             F(so,"patrolDistance",3f); I(so,"attackDamage",1); F(so,"attackCooldown",2f);
             M(so,"playerLayer",1<<9); M(so,"enemyLayer",1<<10); R(so,"attackPoint",atk);
             F(so,"preferredRange",4f); F(so,"fleeRange",2f);
@@ -577,7 +594,7 @@ public class BoneCrusherSetup : EditorWindow
             "Assets/_Art/Zombie/Idle/000.png", "Zombie");
         var atk = go.transform.Find("AttackPoint");
         SO(go.AddComponent<ZombieAI>(), so => {
-            F(so,"detectionRange",5f); F(so,"attackRange",1f); F(so,"moveSpeed",1.2f);
+            F(so,"detectionRange",10f); F(so,"attackRange",1f); F(so,"moveSpeed",1.2f);
             F(so,"patrolDistance",2f); I(so,"attackDamage",1); F(so,"attackCooldown",2f);
             M(so,"playerLayer",1<<9); M(so,"enemyLayer",1<<10); R(so,"attackPoint",atk);
         });
@@ -592,7 +609,7 @@ public class BoneCrusherSetup : EditorWindow
             "Assets/_Art/Warrior/Idle/000.png", "WarriorAdventurer");
         var atk = go.transform.Find("AttackPoint");
         SO(go.AddComponent<WarriorAdventurerAI>(), so => {
-            F(so,"detectionRange",8f); F(so,"attackRange",1.2f); F(so,"moveSpeed",2.5f);
+            F(so,"detectionRange",16f); F(so,"attackRange",1.2f); F(so,"moveSpeed",2.5f);
             F(so,"patrolDistance",3f); I(so,"attackDamage",1); F(so,"attackCooldown",1.8f);
             M(so,"playerLayer",1<<9); M(so,"enemyLayer",1<<10); R(so,"attackPoint",atk);
             F(so,"chargeSpeed",7f); F(so,"chargeThreshold",0.4f);
@@ -608,7 +625,7 @@ public class BoneCrusherSetup : EditorWindow
             "Assets/_Art/RogueAdventurer/Idle/000.png", "RogueAdventurer");
         var atk = go.transform.Find("AttackPoint");
         SO(go.AddComponent<RogueAdventurerAI>(), so => {
-            F(so,"detectionRange",8f); F(so,"attackRange",1f); F(so,"moveSpeed",4f);
+            F(so,"detectionRange",16f); F(so,"attackRange",1f); F(so,"moveSpeed",4f);
             F(so,"patrolDistance",3f); I(so,"attackDamage",1); F(so,"attackCooldown",1f);
             M(so,"playerLayer",1<<9); M(so,"enemyLayer",1<<10); R(so,"attackPoint",atk);
             F(so,"backstepDistance",2f); F(so,"backstepSpeed",5f);
@@ -763,6 +780,11 @@ public class BoneCrusherSetup : EditorWindow
         WireButton(vicBtnQ.GetComponent<UnityEngine.UI.Button>(), vicMgr, "Quit");
         vicCanvas.SetActive(false);
 
+        // HUDSetup crea el HUD en runtime automaticamente
+        var hudGO = new GameObject("HUD");
+        hudGO.AddComponent<HUDManager>();
+        hudGO.AddComponent<HUDSetup>();
+
         var gm = mgr.AddComponent<GameManager>();
         SO(gm, so => {
             I(so,"currentFloor",30); I(so,"targetFloor",25); F(so,"reviveDelay",2f);
@@ -800,6 +822,7 @@ public class BoneCrusherSetup : EditorWindow
     static void Floor(int num, Vector3 origin, string enemy, string advName, string advLine)
     {
         var root = new GameObject("Floor_" + num); root.transform.position = origin;
+        AddBackground(root);
         Ground(root, new Vector3(0,-1,0), new Vector3(22,1,1), COL_GROUND);
         GndEdge(root);
         Wall(root, new Vector3(-10.5f,4,0)); Wall(root, new Vector3(10.5f,4,0));
@@ -819,6 +842,7 @@ public class BoneCrusherSetup : EditorWindow
     static void PuzzleFloor(Vector3 origin)
     {
         var root = new GameObject("Floor_26_Puzzle"); root.transform.position = origin;
+        AddBackground(root);
         Ground(root, new Vector3(0,-1,0), new Vector3(22,1,1), COL_GROUND);
         GndEdge(root);
         Wall(root, new Vector3(-10.5f,4,0)); Wall(root, new Vector3(10.5f,4,0));
@@ -844,14 +868,62 @@ public class BoneCrusherSetup : EditorWindow
     }
 
     // ── Geometry helpers ──────────────────────────────────────
+    // Fondo de mazmorra para cada piso (quad grande detras de todo)
+    static void AddBackground(GameObject p)
+    {
+        var g  = GO("Background", p, -1);
+        g.transform.localPosition = new Vector3(0f, 4.5f, 1f); // Z=1 -> detras
+        var sr = g.AddComponent<SpriteRenderer>();
+        var tile = BgTile();
+        if (tile != null) {
+            sr.sprite   = tile;
+            sr.color    = new Color(0.6f, 0.6f, 0.6f, 1f); // un poco oscurecido
+            sr.drawMode = SpriteDrawMode.Tiled;
+            sr.size     = new Vector2(22f, 11f);
+            g.transform.localScale = Vector3.one;
+        } else {
+            sr.sprite = WhitePx();
+            sr.color  = new Color(0.08f, 0.06f, 0.12f, 1f);
+            g.transform.localScale = new Vector3(22f, 11f, 1f);
+        }
+        sr.sortingOrder = -1;
+    }
     static void Ground(GameObject p, Vector3 lp, Vector3 s, Color c)
-    { var g=GO("Ground",p,8); g.transform.localPosition=lp; g.transform.localScale=s; var sr=g.AddComponent<SpriteRenderer>(); sr.sprite=WhitePx(); sr.color=c; g.AddComponent<BoxCollider2D>().size=Vector2.one; }
+    {
+        var g  = GO("Ground", p, 8);
+        g.transform.localPosition = lp;
+        var sr = g.AddComponent<SpriteRenderer>();
+        var tile = GroundTile();
+        if (tile != null) {
+            sr.sprite = tile; sr.color = Color.white;
+            sr.drawMode = SpriteDrawMode.Tiled; sr.size = new Vector2(s.x, s.y);
+        } else {
+            g.transform.localScale = s; sr.sprite = WhitePx(); sr.color = c;
+        }
+        sr.sortingOrder = 1;
+        var col = g.AddComponent<BoxCollider2D>();
+        col.size = new Vector2(s.x, s.y);
+    }
 
     static void GndEdge(GameObject p)
     { var g=GO("GroundEdge",p,-1); g.transform.localPosition=new Vector3(0,-0.45f,0); g.transform.localScale=new Vector3(22,0.1f,1); var sr=g.AddComponent<SpriteRenderer>(); sr.sprite=WhitePx(); sr.color=new Color(0.55f,0.30f,0.65f); sr.sortingOrder=1; }
 
     static void Wall(GameObject p, Vector3 lp)
-    { var g=GO("Wall",p,8); g.transform.localPosition=lp; g.transform.localScale=new Vector3(1,12,1); var sr=g.AddComponent<SpriteRenderer>(); sr.sprite=WhitePx(); sr.color=COL_WALL; g.AddComponent<BoxCollider2D>().size=Vector2.one; }
+    {
+        var g  = GO("Wall", p, 8);
+        g.transform.localPosition = lp;
+        var sr = g.AddComponent<SpriteRenderer>();
+        var tile = WallTile();
+        if (tile != null) {
+            sr.sprite = tile; sr.color = Color.white;
+            sr.drawMode = SpriteDrawMode.Tiled; sr.size = new Vector2(1f, 12f);
+        } else {
+            g.transform.localScale = new Vector3(1, 12, 1);
+            sr.sprite = WhitePx(); sr.color = COL_WALL;
+        }
+        sr.sortingOrder = 1;
+        g.AddComponent<BoxCollider2D>().size = new Vector2(1f, 12f);
+    }
 
     static void WallEdge(GameObject p, Vector3 lp)
     { var g=GO("WallEdge",p,-1); g.transform.localPosition=lp; g.transform.localScale=new Vector3(0.06f,12,1); var sr=g.AddComponent<SpriteRenderer>(); sr.sprite=WhitePx(); sr.color=new Color(0.45f,0.25f,0.55f); sr.sortingOrder=1; }
@@ -1015,6 +1087,11 @@ public class BoneCrusherSetup : EditorWindow
         if (_whitePx == null) Debug.LogError("WhitePixel.png no encontrado en Assets/_Art/Utils/");
         return _whitePx;
     }
+
+    static Sprite _wallTile, _groundTile, _bgTile;
+    static Sprite WallTile()   { return _wallTile   ?? (_wallTile   = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/_Art/Tiles/Wall.png")); }
+    static Sprite GroundTile() { return _groundTile ?? (_groundTile = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/_Art/Tiles/Ground.png")); }
+    static Sprite BgTile()     { return _bgTile     ?? (_bgTile     = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/_Art/Tiles/Background.png")); }
     static Sprite Spr(string path) => AssetDatabase.LoadAssetAtPath<Sprite>(path);
     static void Save(GameObject go, string path) { PrefabUtility.SaveAsPrefabAsset(go,path); Object.DestroyImmediate(go); Debug.Log(Path.GetFileName(path)+" OK"); }
     static void Del(string path) { if(AssetDatabase.LoadAssetAtPath<Object>(path)!=null) AssetDatabase.DeleteAsset(path); }

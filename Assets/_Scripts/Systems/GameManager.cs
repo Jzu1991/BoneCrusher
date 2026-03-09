@@ -17,10 +17,11 @@ public class GameManager : MonoBehaviour
     [SerializeField] private bool floorCleared = false;
 
     [Header("Referencias")]
-    [SerializeField] private SkarnHealth skarnHealth;
-    [SerializeField] private HUDManager  hud;
-    [SerializeField] private GameObject  gameOverPanel;
-    [SerializeField] private GameObject  victoryPanel;
+    [SerializeField] private SkarnHealth  skarnHealth;
+    [SerializeField] private HUDManager   hud;
+    [SerializeField] private CameraFollow camFollow;
+    [SerializeField] private GameObject   gameOverPanel;
+    [SerializeField] private GameObject   victoryPanel;
 
     [Header("Revida")]
     [SerializeField] private float     reviveDelay = 2f;
@@ -58,6 +59,10 @@ public class GameManager : MonoBehaviour
             }
         }
 
+        if (camFollow == null)
+            camFollow = FindFirstObjectByType<CameraFollow>();
+        camFollow?.SetFloor(currentFloor, instant: true);
+
         if (skarnHealth != null)
         {
             skarnHealth.OnSkarnDied      += OnSkarnDied;
@@ -90,6 +95,7 @@ public class GameManager : MonoBehaviour
 
         currentFloor--;
         hud?.SetFloor(currentFloor);
+        camFollow?.SetFloor(currentFloor);
         StartCoroutine(TransitionToNextFloor());
     }
 
@@ -105,10 +111,14 @@ public class GameManager : MonoBehaviour
         SkarnController skarn = FindFirstObjectByType<SkarnController>();
         if (skarn != null)
         {
-            // Teletransportar desactivando física un frame para evitar glitches
             Rigidbody2D srb = skarn.GetComponent<Rigidbody2D>();
             srb.linearVelocity = Vector2.zero;
-            skarn.transform.position = new Vector3(PLAYER_START_X, newY, 0f);
+            var newPos = new Vector3(PLAYER_START_X, newY, 0f);
+            skarn.transform.position = newPos;
+
+            // Actualizar checkpoint al inicio del nuevo piso
+            // para que si Skarn muere antes de tocar el checkpoint del piso, reviva aqui
+            checkpointPosition = skarn.transform;
         }
 
         floorCleared = false;
